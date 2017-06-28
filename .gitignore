@@ -18,3 +18,7 @@ target/classes/keyStore/insurance/
 target/test-classes/
 
 target/classes/tls/
+/.springBeans
+/target/
+src/main/java/com/ac/insurance/model/
+src/main/resources/templates/hospital/
