@@ -1,13 +1,23 @@
 package com.ac.common.fabric;
 
-import com.ac.common.constant.SmartContractConstant;
-import com.ac.common.fabric.model.ChainCodeResultModel;
+import java.io.File;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+
+import javax.annotation.PostConstruct;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hyperledger.fabric.sdk.BlockEvent.TransactionEvent;
+import org.hyperledger.fabric.sdk.ChaincodeID;
+import org.hyperledger.fabric.sdk.Peer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
+import com.ac.common.constant.SmartContractConstant;
+import com.ac.common.fabric.model.ChainCodeResultModel;
 
 /**
  * Created by zhenchao.bi on 6/27/2017.
@@ -15,55 +25,89 @@ import java.io.File;
 @Service
 public class SmartContractWapper {
 
-    @Autowired
-    private ChannelWapper channel;
+	public static ChaincodeID HOSPITAL_CHAINCODE_ID = null;
 
-    private ResourceLoader loader = new DefaultResourceLoader();
+	public static ChaincodeID INDURANCE_CHAINCODE_ID = null;
 
+	public static ChaincodeID CUSTOMER_CHAINCODE_ID = null;
 
-    public ChainCodeResultModel installHospitalSC() {
+	public static List<Peer> peers = null;
 
-        try {
-            //smartContract\hospital
-            File scFile = loader.getResource("classpath:/smartContract/hospital").getFile();
+	@Autowired
+	private ChannelWapper channel;
 
-            return channel.installChaincode(scFile, SmartContractConstant.Hospital.CHAINCODE_NAME, SmartContractConstant.Hospital.CHAINCODE_VERSION,
-                    SmartContractConstant.Hospital.CHAINCODE_PATH, channel.getAllPeers());
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
+	private ResourceLoader loader = new DefaultResourceLoader();
 
-        return null;
-    }
+	//@PostConstruct
+	private void init() throws Exception {
 
-    public ChainCodeResultModel installInsuranceSC() {
+		HOSPITAL_CHAINCODE_ID = ChaincodeID.newBuilder().setName(SmartContractConstant.Hospital.CHAINCODE_NAME)
+				.setVersion(SmartContractConstant.Hospital.CHAINCODE_VERSION)
+				.setPath(SmartContractConstant.Hospital.CHAINCODE_PATH).build();
 
-        try {
-            //smartContract\hospital
-            File scFile = loader.getResource("classpath:/smartContract/insurance").getFile();
+		INDURANCE_CHAINCODE_ID = ChaincodeID.newBuilder().setName(SmartContractConstant.Insurance.CHAINCODE_NAME)
+				.setVersion(SmartContractConstant.Insurance.CHAINCODE_VERSION)
+				.setPath(SmartContractConstant.Insurance.CHAINCODE_PATH).build();
 
-            return channel.installChaincode(scFile, SmartContractConstant.Insurance.CHAINCODE_NAME, SmartContractConstant.Insurance.CHAINCODE_VERSION,
-                    SmartContractConstant.Insurance.CHAINCODE_PATH, channel.getAllPeers());
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
+		CUSTOMER_CHAINCODE_ID = ChaincodeID.newBuilder().setName(SmartContractConstant.Customer.CHAINCODE_NAME)
+				.setVersion(SmartContractConstant.Customer.CHAINCODE_VERSION)
+				.setPath(SmartContractConstant.Customer.CHAINCODE_PATH).build();
 
-        return null;
-    }
+		peers = channel.getAllPeers().stream().filter(peer -> StringUtils.contains(peer.getName(), "org1.example.com")
+				&& StringUtils.contains(peer.getName(), "peer0")).collect(Collectors.toList());
+	}
 
-    public ChainCodeResultModel installCustomerSC() {
+	public ChainCodeResultModel installHospitalSC() throws Exception {
 
-        try {
-            //smartContract\hospital
-            File scFile = loader.getResource("classpath:/smartContract/customer").getFile();
+		try {
+			// smartContract\hospital
+			File scFile = loader.getResource("classpath:/smartContract/hospital").getFile();
+			return channel.installChaincode(HOSPITAL_CHAINCODE_ID, scFile, peers);
+		} catch (Exception ex) {
+			// log
+			throw ex;
+		}
+	}
 
-            return channel.installChaincode(scFile, SmartContractConstant.Customer.CHAINCODE_NAME, SmartContractConstant.Customer.CHAINCODE_VERSION,
-                    SmartContractConstant.Customer.CHAINCODE_PATH, channel.getAllPeers());
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
+	public CompletableFuture<TransactionEvent> instantHospitalSC() throws Exception {
 
-        return null;
-    }
+		try {
+			// smartContract\hospital
+			File scFile = loader.getResource("classpath:/endorsementPolicy/hospital/chaincodeendorsementpolicy.yaml")
+					.getFile();
+
+			return channel.instantChaincode(HOSPITAL_CHAINCODE_ID, scFile, peers, "init", new String[] { "test" });
+
+		} catch (Exception ex) {
+			// log
+			throw ex;
+		}
+	}
+
+	public ChainCodeResultModel installInsuranceSC() {
+
+		try {
+			// smartContract\hospital
+			File scFile = loader.getResource("classpath:/smartContract/insurance").getFile();
+			return channel.installChaincode(INDURANCE_CHAINCODE_ID, scFile, peers);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+
+		return null;
+	}
+
+	public ChainCodeResultModel installCustomerSC() {
+
+		try {
+			// smartContract\hospital
+			File scFile = loader.getResource("classpath:/smartContract/customer").getFile();
+			return channel.installChaincode(INDURANCE_CHAINCODE_ID, scFile, peers);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+
+		return null;
+	}
 
 }
